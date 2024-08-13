@@ -1,0 +1,176 @@
+import openai  # Import the OpenAI library for AI responses
+import tkinter as tk  # Import the tkinter library for GUI creation
+from tkinter import simpledialog, scrolledtext  # Import specific components from tkinter for GUI
+import os  # Import the os module for system commands
+
+# Set OpenAI API key for authentication
+openai.api_key = 'Removed..Place api link here'
+
+
+# Function to speak text using the operating system's speech synthesis method
+def speak(text):
+    try:
+        os.system(f"say '{text}'")  # Use the 'say' command on macOS to vocalize the text
+    except Exception as e:
+        print(f"Error speaking: {e}")  # Print error message if speech synthesis fails
+
+
+# Function to listen to user audio input
+import speech_recognition as sr  # Import the speech_recognition library with alias sr
+
+
+def listen():
+    recognizer = sr.Recognizer()  # Initialize a Recognizer object for speech recognition
+    mic = sr.Microphone()  # Initialize a Microphone object to capture audio input
+
+    with mic as source:
+        recognizer.adjust_for_ambient_noise(source, duration=1)  # Adjust for ambient noise to improve recognition
+        print("Listening...")  # Print status message indicating the system is listening
+        audio = recognizer.listen(source, timeout=4.5)  # Capture audio input with a timeout of 4.5 seconds
+
+    try:
+        text = recognizer.recognize_sphinx(audio)  # Recognize speech using the Sphinx engine
+        print("Recognizing...")  # Print status message indicating speech recognition is in progress
+        return text  # Return the recognized text
+    except sr.UnknownValueError:
+        print("Sorry, I couldn't understand what you said. Try again")  # Print message for unrecognized speech
+        return ""  # Return an empty string if speech cannot be recognized
+    except sr.RequestError as e:
+        print(f"Error accessing recognition service: {e}")  # Print error message if recognition service is inaccessible
+        return ""  # Return an empty string if there is an error accessing the recognition service
+
+
+# Function to generate an OpenAI response based on user input
+def generate_response(user_input):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4-turbo",  # Use the GPT-4 Turbo model for generating responses
+            messages=[
+                {"role": "user", "content": user_input},  # Include user input as a message
+            ],
+            temperature=0.7,  # Set the temperature parameter for randomness in response generation
+            max_tokens=100,  # Set the maximum number of tokens in the generated response
+            top_p=1.0,  # Set the nucleus sampling parameter
+            frequency_penalty=0.0,  # Set the frequency penalty for response generation
+            presence_penalty=0.0  # Set the presence penalty for response generation
+        )
+        return response.choices[0].message['content']  # Return the content of the generated response
+    except Exception as e:
+        print(f"Error generating AI response: {e}")  # Print error message if response generation fails
+        return "Sorry, I could not generate a response."  # Return a default message if response generation fails
+
+
+# Define a class for the GUI chat application
+class ChatApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Chat with Abby AI")  # Set the title of the GUI window
+
+        # Create a chat history display with a scrollbar
+        self.chat_display = scrolledtext.ScrolledText(self, wrap=tk.WORD, state=tk.DISABLED)
+        self.chat_display.pack(expand=True, fill=tk.BOTH)
+
+        # Create an input field for user messages
+        self.input_field = tk.Entry(self)
+        self.input_field.pack(side=tk.LEFT, expand=True, fill=tk.X)
+
+        # Create a send button to send user messages
+        self.send_button = tk.Button(self, text="Send", command=self.send_message)
+        self.send_button.pack(side=tk.RIGHT)
+
+        # Bind the Enter key to send a message
+        self.input_field.bind("<Return>", lambda event: self.send_message())
+
+        # Set the focus to the input field initially
+        self.input_field.focus_set()
+
+    # Method to switch to AI Abby's audio mode
+    def switch_to_ai_abby_mode(self):
+        """Switch to AI Abby's audio mode."""
+        speak("Switching to AI Abby mode...")  # Vocalize a message indicating the switch to AI Abby mode
+        self.display_message("Switching to AI Abby mode...", sender="System")  # Display a message in the chat history
+
+        # In AI Abby mode, continuously listen and respond until the user chooses to exit
+        while True:
+            user_response = listen()  # Capture user's spoken input
+            speak(user_response)  # Vocalize the user's input
+
+            ai_response = generate_response(user_response)  # Generate AI response based on user input
+            speak(ai_response)  # Vocalize the AI response
+
+            # Display the user's input and AI response in the chat history
+            self.display_message(f"You: {user_response}", sender="You")
+            self.display_message(f"Abby AI: {ai_response}", sender="Abby AI")
+
+            # Check if the user wants to exit AI Abby mode
+            if user_response.strip().lower() in ["exit", "quit"]:
+                speak("Exiting AI Abby mode...")  # Vocalize a message indicating exit from AI Abby mode
+                self.display_message("Exiting AI Abby mode...", sender="System")  # Display exit message
+                break
+
+    # Method to send a message and generate an AI response
+    def send_message(self):
+        """Send a message and generate an AI response."""
+        user_input = self.input_field.get()  # Get the user's input from the input field
+        if user_input:
+
+            # Display the user's input in the chat history with the sender label "You"
+            self.display_message(user_input, sender="You")
+
+            # Check if the user input is a command to switch to AI Abby mode
+            if user_input.strip().lower() == "speak":
+                self.switch_to_ai_abby_mode()
+                # Call the method to switch to AI Abby's audio mode
+            else:
+                # Generate an AI response based on the user input and display it in the chat history
+                ai_response = generate_response(user_input)
+                self.display_message(ai_response, sender="Abby AI")
+
+            # Clear the input field after sending the message
+            self.input_field.delete(0, tk.END)
+
+    # Method to display a message in the chat display
+    def display_message(self, message, sender):
+        """Display a message in the chat display."""
+        self.chat_display.configure(state=tk.NORMAL)  # Set the chat display to normal state for editing
+        # Insert the message with the sender label into the chat display
+        self.chat_display.insert(tk.END, f"{sender}: {message}\n")
+
+
+# Main function to handle user prompt and start the program
+def main():
+    # Initial prompt for user choice between starting AbbyAI or AbbyChatbotAI
+    prompt_text = """Welcome to AbbyAI!
+
+Type Abby to start AbbyAI.
+Type Chat to start AbbyChatbotAI."""
+    prompt_title = "AbbyAI"
+    user_choice = simpledialog.askstring(prompt_title, prompt_text)  # Display the prompt and get user input
+
+    if user_choice is None:
+        print("No input provided. Exiting...")  # Print message and exit if no input is provided
+        return
+
+    if user_choice.lower() == "abby":
+        openai_response = "Hi, My name is Abby. I am your Speech AI assistant. How can I help you today?"
+        speak(openai_response)  # Vocalize the initial response from AbbyAI
+
+        while True:
+            user_response = listen()  # Listen for user's speech input
+            speak(user_response)  # Vocalize the user's speech input
+
+            ai_response = generate_response(user_response) # Generate AI response based on user input
+            speak(ai_response) # Vocalize the AI response
+
+            if user_response == "exit" or user_response == "quit":
+                break # Exit the loop if the user wants to quit
+
+    elif user_choice.lower() == "chat":
+        # Start the GUI chat application (ChatApp)
+        app = ChatApp()
+        app.mainloop()
+
+
+# Run the main function if the script is executed directly
+if __name__ == "__main__":
+    main()
