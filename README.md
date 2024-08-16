@@ -13,6 +13,7 @@ SpeechRecognition: Python library for recognizing speech input
 We explored available Python libraries for voice recognition, such as SpeechRecognition, and text-to-speech conversion, such as pyttsx3 or gTTS. While discovering different libraries we evaluated each library based on features, ease of use, compatibility, and documentation. And then, implemented voice recognition libraries to capture and transcribe audio commands into responses to create a personable AI system.
 
 Development
+
 1 .We started by setting up / purchasing access to  OpenAI with our API key, allowing us to access their powerful language models. (sk_1234…etc)
 
 2. We then use the SpeechRecognition library to capture user input through speech.
